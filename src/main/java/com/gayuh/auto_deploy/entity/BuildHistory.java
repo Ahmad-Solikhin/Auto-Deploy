@@ -3,6 +3,8 @@ package com.gayuh.auto_deploy.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @Entity
@@ -17,10 +19,12 @@ public class BuildHistory {
     private Long id;
     private Boolean success;
     @Column(name = "execution_time")
-    private Integer executionTime;
+    private Long executionTime;
     @Column(name = "execute_at")
-    private Integer executeAt;
+    private Long executeAt;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
     private Project project;
+    @OneToMany(mappedBy = "buildHistory")
+    private List<BuildHistoryLog> buildHistoryLogList;
 }
