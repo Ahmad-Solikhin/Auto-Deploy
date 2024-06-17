@@ -19,6 +19,8 @@ public class Project {
     private String path;
     private String language;
     private String description;
+    @Column(name = "file_name")
+    private String fileName;
     @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
     private List<BuildHistory> buildHistories;
 }

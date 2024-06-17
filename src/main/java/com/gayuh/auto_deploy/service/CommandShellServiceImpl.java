@@ -25,33 +25,24 @@ public class CommandShellServiceImpl implements CommandShellService {
     public void saveProjectCommand(Project project, MultipartFile file) {
         checkContentType("octet-stream", file);
 
-        project.setName(file.getOriginalFilename());
-
         String fileName = project.getId() + "-" + file.getOriginalFilename();
+
+        project.setFileName(fileName);
 
         project.setPath(saveShell(file, fileName));
     }
 
     @Override
-    public void updateImageQuestion(MultipartFile file, String mediaId) {
-//        checkContentType("image", file);
-//        Media media = getMediaById(mediaId);
-//        String fileName = mediaId + "-" + media.getName();
-//
-//        try {
-//            if (Boolean.FALSE.equals(compareTwoImage(file, fileName))) {
-//                deleteFile(media);
-//
-//                media.setName(file.getOriginalFilename());
-//                media.setSize((int) file.getSize());
-//                mediaRepository.save(media);
-//
-//                fileName = mediaId + "-" + file.getOriginalFilename();
-//                saveShell(file, fileName);
-//            }
-//        } catch (IOException e) {
-//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error update file " + file.getOriginalFilename());
-//        }
+    public Boolean updateCommandShellFile(Project project, MultipartFile file) {
+        boolean isDataChange = false;
+        if (file != null) {
+            checkContentType("octet-stream", file);
+            isDataChange = true;
+            deleteCommandShellFile(project.getFileName());
+            saveProjectCommand(project, file);
+        }
+
+        return isDataChange;
     }
 
     @Override
@@ -59,17 +50,7 @@ public class CommandShellServiceImpl implements CommandShellService {
         deleteFile(fileName);
     }
 
-    @Override
-    public void deleteAllImageByQuestionTitleId(String questionTitleId) {
-//        List<Media> medias = mediaRepository.findAllMediaByQuestionTitleId(questionTitleId);
-//
-//        if (!medias.isEmpty()) {
-//            medias.forEach(this::deleteFile);
-//            mediaRepository.deleteAllMediaByQuestionTitleId(questionTitleId);
-//        }
-    }
-
-    public String saveShell(MultipartFile file, String fileName) {
+    private String saveShell(MultipartFile file, String fileName) {
         String path;
         try (InputStream inputStream = file.getInputStream()) {
             Path filePath = folderCommandPath.resolve(fileName);
@@ -82,7 +63,7 @@ public class CommandShellServiceImpl implements CommandShellService {
         return path;
     }
 
-    public void deleteFile(String fileName) {
+    private void deleteFile(String fileName) {
         try {
             Path filePath = folderCommandPath.resolve(fileName);
             Files.deleteIfExists(filePath);
@@ -91,30 +72,11 @@ public class CommandShellServiceImpl implements CommandShellService {
         }
     }
 
-    /**
-     * For compare the image input
-     * Arrays.equals(multipartFile.getBytes(), Files.readAllBytes(filePath));
-     */
-
-    private /*Boolean*/ void compareTwoImage(MultipartFile file, String fileName) throws IOException {
-//        Path filePath = folderImagePath.resolve(fileName);
-//        return Arrays.equals(file.getBytes(), Files.readAllBytes(filePath));
-    }
-
     private void checkContentType(String content, MultipartFile file) {
         String type = Objects.requireNonNull(file.getContentType()).split("/")[1];
-        log.info("The type is {}", type);
         if (!type.equalsIgnoreCase(content)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only accept " + content);
         }
-    }
-
-    private Project getMediaById(String mediaId) {
-//        return mediaRepository.findById(mediaId).orElseThrow(
-//                ResponseStatusExceptionUtil::notFound
-//        );
-
-        return null;
     }
 
 }

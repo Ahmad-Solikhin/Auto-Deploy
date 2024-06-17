@@ -1,6 +1,7 @@
 package com.gayuh.auto_deploy.service;
 
 import com.gayuh.auto_deploy.dto.ProjectRequest;
+import com.gayuh.auto_deploy.dto.ProjectResponse;
 import com.gayuh.auto_deploy.entity.Project;
 import com.gayuh.auto_deploy.repository.ProjectRepository;
 import jakarta.transaction.Transactional;
@@ -30,36 +31,76 @@ public class ProjectServiceImpl implements ProjectService {
     private final CommandShellService commandShellService;
 
     @Override
-    public Project getProjectByIdOrName(String idOrName) {
-        if (Objects.isNull(idOrName))
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please provide project id or project name");
+    public ProjectResponse getProjectById(String projectId) {
+        if (Objects.isNull(projectId))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please provide correct project id");
 
         return projectRepository
-                .findByIdOrName(idOrName, idOrName)
+                .findProjectResponseById(projectId)
                 .orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Id or name " + idOrName + " not found")
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found")
                 );
     }
 
     @Override
-    public List<Project> getAllProject() {
-        return projectRepository.findAll();
+    public List<ProjectResponse> getAllProject() {
+        return projectRepository.findAllProjectResponse();
     }
 
     @Override
     @Transactional
-    public void addProject(ProjectRequest request, MultipartFile file) throws IOException, InterruptedException {
+    public void addProject(ProjectRequest request, MultipartFile file) throws IOException {
         var project = Project.builder()
                 .id(UUID.randomUUID().toString())
-                .name(request.getName())
-                .language(request.getLanguage())
-                .description(request.getDescription())
+                .name(request.name())
+                .language(request.language())
+                .description(request.description())
                 .build();
 
         commandShellService.saveProjectCommand(project, file);
 
-        String fileName = project.getId() + "-" + project.getName();
+        allowExecuteFile(project.getFileName());
 
+        projectRepository.save(project);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProject(String projectId) {
+        var project = projectRepository
+                .findById(projectId)
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found")
+                );
+
+        commandShellService.deleteCommandShellFile(project.getFileName());
+
+        projectRepository.deleteById(project.getId());
+    }
+
+    @Override
+    @Transactional
+    public void updateProject(ProjectRequest request, MultipartFile file) throws IOException {
+        var project = projectRepository
+                .findById(request.id())
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found")
+                );
+
+        project.setName(request.name());
+        project.setLanguage(request.language());
+        project.setDescription(request.description());
+
+        Boolean isUpdateFile = commandShellService.updateCommandShellFile(project, file);
+
+        log.info("Is update file {}", isUpdateFile);
+
+        if (isUpdateFile) allowExecuteFile(project.getFileName());
+
+        projectRepository.save(project);
+    }
+
+    private void allowExecuteFile(String fileName) throws IOException {
         Path filePath = folderCommandPath.resolve(fileName);
 
         processBuilder.command("/bin/bash", "-c", "chmod", "+x", filePath.toAbsolutePath().toString());
@@ -77,11 +118,9 @@ public class ProjectServiceImpl implements ProjectService {
         BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
         if (reader.readLine() != null) {
-            log.error(reader.readLine());
             commandShellService.deleteCommandShellFile(fileName);
+            log.error(reader.readLine());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Something wrong with the file");
         }
-
-        projectRepository.save(project);
     }
 }

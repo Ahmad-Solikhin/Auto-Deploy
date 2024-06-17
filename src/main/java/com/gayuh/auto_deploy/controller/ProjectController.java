@@ -24,9 +24,9 @@ public class ProjectController {
     private final ProjectService projectService;
 
 
-    @GetMapping(value = "{idOrName}")
-    public ResponseEntity<Object> getById(@PathVariable(name = "idOrName") String idOrName) {
-        var response = projectService.getProjectByIdOrName(idOrName);
+    @GetMapping(value = "{projectId}")
+    public ResponseEntity<Object> getById(@PathVariable(name = "projectId") String projectId) {
+        var response = projectService.getProjectById(projectId);
 
         return ResponseEntity.ok(Map.of("data", response, "message", "oke"));
     }
@@ -44,14 +44,8 @@ public class ProjectController {
             @RequestParam(name = "name") String name,
             @RequestParam(name = "language") String language,
             @RequestParam(name = "description") String description
-    ) throws IOException, InterruptedException {
-        var request = ProjectRequest.builder()
-                .name(name)
-                .language(language)
-                .description(description)
-                .build();
-
-        log.info(file.getContentType());
+    ) throws IOException {
+        var request = new ProjectRequest(null, name, language, description);
 
         projectService.addProject(request, file);
 
@@ -61,25 +55,21 @@ public class ProjectController {
     @PutMapping(value = "{projectId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Object> editProject(
             @PathVariable(name = "projectId") String projectId,
-            @RequestParam(name = "file") MultipartFile file,
+            @RequestParam(name = "file", required = false) MultipartFile file,
             @RequestParam(name = "name") String name,
             @RequestParam(name = "language") String language,
             @RequestParam(name = "description") String description
-    ) {
-        log.info(projectId);
-        log.info(file.getContentType());
-        var projectRequest = ProjectRequest.builder()
-                .name(name)
-                .language(language)
-                .description(description)
-                .build();
-        log.info(projectRequest.toString());
+    ) throws IOException {
+        var request = new ProjectRequest(projectId, name, language, description);
+
+        projectService.updateProject(request, file);
+
         return ResponseEntity.ok(null);
     }
 
     @DeleteMapping(value = "{projectId}")
     public ResponseEntity<Object> deleteProject(@PathVariable(name = "projectId") String projectId) {
-        //Todo : Delete project by id
+        projectService.deleteProject(projectId);
 
         return ResponseEntity.ok(Map.of("message", "success delete data"));
     }
