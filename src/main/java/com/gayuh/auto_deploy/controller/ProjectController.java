@@ -28,14 +28,14 @@ public class ProjectController {
     public ResponseEntity<Object> getById(@PathVariable(name = "projectId") String projectId) {
         var response = projectService.getProjectById(projectId);
 
-        return ResponseEntity.ok(Map.of("data", response, "message", "oke"));
+        return ResponseEntity.ok(Map.of("data", response, "message", "Success, data found"));
     }
 
     @GetMapping
     public ResponseEntity<Object> getAll() {
         var response = projectService.getAllProject();
 
-        return ResponseEntity.ok(Map.of("data", response, "message", "oke"));
+        return ResponseEntity.ok(Map.of("data", response, "message", "Success, data count is " + response.size()));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

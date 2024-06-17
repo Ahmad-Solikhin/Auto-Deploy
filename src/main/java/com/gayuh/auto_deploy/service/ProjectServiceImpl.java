@@ -1,5 +1,7 @@
 package com.gayuh.auto_deploy.service;
 
+import com.gayuh.auto_deploy.dto.BuildHistoryResponse;
+import com.gayuh.auto_deploy.dto.ProjectDetailResponse;
 import com.gayuh.auto_deploy.dto.ProjectRequest;
 import com.gayuh.auto_deploy.dto.ProjectResponse;
 import com.gayuh.auto_deploy.entity.Project;
@@ -16,10 +18,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -31,15 +30,38 @@ public class ProjectServiceImpl implements ProjectService {
     private final CommandShellService commandShellService;
 
     @Override
-    public ProjectResponse getProjectById(String projectId) {
+    public ProjectDetailResponse getProjectById(String projectId) {
         if (Objects.isNull(projectId))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please provide correct project id");
 
-        return projectRepository
-                .findProjectResponseById(projectId)
-                .orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found")
-                );
+        var queries = projectRepository.findProjectBuildHistoryQueryById(projectId);
+
+        if (queries.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found");
+
+        var listBuildHistory = new ArrayList<BuildHistoryResponse>();
+
+        if (queries.get(0).buildHistoryId() != null) {
+            queries.forEach(query -> listBuildHistory.add(new BuildHistoryResponse(
+                    query.buildHistoryId(),
+                    query.success(),
+                    null,
+                    query.executionTime(),
+                    null,
+                    query.executeAt()
+            )));
+        }
+
+
+        return new ProjectDetailResponse(
+                queries.get(0).projectId(),
+                queries.get(0).name(),
+                queries.get(0).language(),
+                queries.get(0).description(),
+                null,
+                null,
+                null,
+                listBuildHistory
+        );
     }
 
     @Override

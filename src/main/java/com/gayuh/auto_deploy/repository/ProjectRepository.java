@@ -1,5 +1,6 @@
 package com.gayuh.auto_deploy.repository;
 
+import com.gayuh.auto_deploy.dto.ProjectBuildHistoryQuery;
 import com.gayuh.auto_deploy.dto.ProjectResponse;
 import com.gayuh.auto_deploy.entity.Project;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,10 +16,27 @@ public interface ProjectRepository extends JpaRepository<Project, String> {
                 ) from Project where id = :projectId
             """)
     Optional<ProjectResponse> findProjectResponseById(String projectId);
+
     @Query(value = """
                 select new com.gayuh.auto_deploy.dto.ProjectResponse(
                 id, name, language, description
                 ) from Project
             """)
     List<ProjectResponse> findAllProjectResponse();
+
+    @Query(value = """
+            select new com.gayuh.auto_deploy.dto.ProjectBuildHistoryQuery(
+                      po.id,
+                      po.name,
+                      po.language,
+                      po.description,
+                      bh.id,
+                      bh.success,
+                      bh.executionTime,
+                      bh.executeAt
+            ) from Project po
+            left join BuildHistory bh on (po.id = bh.project.id)
+            where po.id = :projectId
+            """)
+    List<ProjectBuildHistoryQuery> findProjectBuildHistoryQueryById(String projectId);
 }
