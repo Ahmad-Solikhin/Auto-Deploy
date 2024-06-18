@@ -11,7 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -29,8 +31,13 @@ public class BuildHistoryServiceImpl implements BuildHistoryService {
     @Async
     @Override
     @Transactional
-    public void addBuildHistory(Stream<String> stream, String projectId) throws IOException {
+    public void addBuildHistory(Process process, String projectId) throws IOException {
         boolean successStatus = true;
+
+        BufferedReader successReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+        Stream<String> stringStream = Stream.concat(successReader.lines(), errorReader.lines());
 
         Long executeAt = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
 
@@ -45,7 +52,7 @@ public class BuildHistoryServiceImpl implements BuildHistoryService {
 
         var listBuildHistoryLog = new ArrayList<BuildHistoryLog>();
         AtomicInteger lineNumber = new AtomicInteger(1);
-        stream.forEach(data ->
+        stringStream.forEach(data ->
                 listBuildHistoryLog.add(
                         BuildHistoryLog.builder()
                                 .buildHistory(buildHistory)

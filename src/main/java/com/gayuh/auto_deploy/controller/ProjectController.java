@@ -88,8 +88,7 @@ public class ProjectController {
         BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
         Stream<String> stringStream = Stream.concat(successReader.lines(), errorReader.lines());
-
-        buildHistoryService.addBuildHistory(stringStream, projectId);
+        buildHistoryService.addBuildHistory(process, projectId);
 
         return Flux.fromStream(stringStream);
     }
