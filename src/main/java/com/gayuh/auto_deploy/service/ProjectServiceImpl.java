@@ -151,9 +151,9 @@ public class ProjectServiceImpl implements ProjectService {
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
-        if (reader.readLine() != null) {
+        if (reader.lines() != null) {
             commandShellService.deleteCommandShellFile(fileName);
-            log.error(reader.readLine());
+            reader.lines().forEach(log::error);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Something wrong with the file");
         }
 
@@ -171,9 +171,11 @@ public class ProjectServiceImpl implements ProjectService {
 
         reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
-        if (reader.readLine() != null) {
+        if (reader.lines() != null) {
             commandShellService.deleteCommandShellFile(fileName);
-            log.error(reader.readLine());
+
+            reader.lines().forEach(log::error);
+
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Something wrong with the file");
         }
     }
