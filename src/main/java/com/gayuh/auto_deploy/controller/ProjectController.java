@@ -1,6 +1,7 @@
 package com.gayuh.auto_deploy.controller;
 
 import com.gayuh.auto_deploy.dto.ProjectRequest;
+import com.gayuh.auto_deploy.service.BuildHistoryService;
 import com.gayuh.auto_deploy.service.ProjectService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Map;
+import java.util.stream.Stream;
 
 @Slf4j
 @RestController
@@ -22,6 +24,7 @@ import java.util.Map;
 public class ProjectController {
     private final ProcessBuilder processBuilder;
     private final ProjectService projectService;
+    private final BuildHistoryService buildHistoryService;
 
 
     @GetMapping(value = "{projectId}")
@@ -77,7 +80,18 @@ public class ProjectController {
     @PostMapping(value = "{projectId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> startProjectBuild(@PathVariable(name = "projectId") String projectId) throws InterruptedException, IOException {
 
-        return projectService.buildProject(projectId);
+        var builder = projectService.buildProject(projectId);
+
+        Process process = builder.start();
+
+        BufferedReader successReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+        Stream<String> stringStream = Stream.concat(successReader.lines(), errorReader.lines());
+
+        buildHistoryService.addBuildHistory(stringStream, projectId);
+
+        return Flux.fromStream(stringStream);
     }
 
     @GetMapping(value = "test/{command}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

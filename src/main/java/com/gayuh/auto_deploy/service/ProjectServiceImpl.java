@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -125,28 +126,19 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public Flux<String> buildProject(String projectId) throws InterruptedException, IOException {
+    public ProcessBuilder buildProject(String projectId) throws InterruptedException, IOException {
         var project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
 
-
-        processBuilder.command("/bin/bash", "-c", project.getPath());
-
         log.info("Start build project {} with path {}", project.getName(), project.getPath());
 
-        Process process = processBuilder.start();
-
-        buildHistoryService.addBuildHistory(process, project);
-
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-
-        return Flux.fromStream(bufferedReader.lines());
+        return processBuilder.command("sh", "-c", project.getPath());
     }
 
     private void allowExecuteFile(String fileName) throws IOException {
         Path filePath = folderCommandPath.resolve(fileName);
 
-        processBuilder.command("/bin/bash", "-c", "chmod", "+x", filePath.toAbsolutePath().toString());
+        processBuilder.command("sh", "-c", "chmod +x " + filePath.toAbsolutePath());
 
         Process process;
         try {
@@ -159,6 +151,25 @@ public class ProjectServiceImpl implements ProjectService {
         }
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+        if (reader.readLine() != null) {
+            commandShellService.deleteCommandShellFile(fileName);
+            log.error(reader.readLine());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Something wrong with the file");
+        }
+
+        processBuilder.command("sh", "dos2unix " + filePath.toAbsolutePath());
+
+        try {
+            process = processBuilder.start();
+        } catch (IOException exception) {
+            commandShellService.deleteCommandShellFile(fileName);
+            log.error(exception.getMessage());
+            Arrays.stream(exception.getStackTrace()).forEach(err -> log.error(err.toString()));
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage());
+        }
+
+        reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
         if (reader.readLine() != null) {
             commandShellService.deleteCommandShellFile(fileName);
