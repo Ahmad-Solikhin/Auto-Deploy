@@ -84,13 +84,10 @@ public class ProjectController {
 
         Process process = builder.start();
 
-        BufferedReader successReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        //BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
-        //Stream<String> stringStream = Stream.concat(successReader.lines(), errorReader.lines());
+        BufferedReader stream = new BufferedReader(new InputStreamReader(process.getInputStream()));
         //buildHistoryService.addBuildHistory(process, projectId);
 
-        return Flux.fromStream(successReader.lines());
+        return Flux.fromStream(stream.lines());
     }
 
     @GetMapping(value = "test/{command}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
