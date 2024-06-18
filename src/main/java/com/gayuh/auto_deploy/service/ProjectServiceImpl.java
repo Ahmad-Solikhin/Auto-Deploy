@@ -13,14 +13,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-import reactor.core.publisher.Flux;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -142,6 +140,7 @@ public class ProjectServiceImpl implements ProjectService {
 
         Process process;
         try {
+            log.info("Start Command : {}", processBuilder.command());
             process = processBuilder.start();
         } catch (IOException exception) {
             commandShellService.deleteCommandShellFile(fileName);
@@ -161,6 +160,7 @@ public class ProjectServiceImpl implements ProjectService {
         processBuilder.command("sh", "dos2unix " + filePath.toAbsolutePath());
 
         try {
+            log.info("Start Command : {}", processBuilder.command());
             process = processBuilder.start();
         } catch (IOException exception) {
             commandShellService.deleteCommandShellFile(fileName);
