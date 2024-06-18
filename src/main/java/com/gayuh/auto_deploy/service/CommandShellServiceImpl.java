@@ -57,6 +57,7 @@ public class CommandShellServiceImpl implements CommandShellService {
             Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
             path = filePath.toAbsolutePath().toString();
         } catch (IOException exception) {
+            exception.printStackTrace();
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error save file " + file.getOriginalFilename());
         }
 
@@ -68,6 +69,7 @@ public class CommandShellServiceImpl implements CommandShellService {
             Path filePath = folderCommandPath.resolve(fileName);
             Files.deleteIfExists(filePath);
         } catch (IOException exception) {
+            exception.printStackTrace();
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error delete file " + fileName);
         }
     }
