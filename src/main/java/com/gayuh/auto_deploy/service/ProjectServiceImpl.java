@@ -138,10 +138,10 @@ public class ProjectServiceImpl implements ProjectService {
 
         processBuilder.command("sh", "-c", "chmod +x " + filePath.toAbsolutePath());
 
-        Process process;
+        Process process1;
         try {
             log.info("Start Command : {}", processBuilder.command());
-            process = processBuilder.start();
+            process1 = processBuilder.start();
         } catch (IOException exception) {
             commandShellService.deleteCommandShellFile(fileName);
             log.error(exception.getMessage());
@@ -149,19 +149,20 @@ public class ProjectServiceImpl implements ProjectService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage());
         }
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+        BufferedReader reader1 = new BufferedReader(new InputStreamReader(process1.getErrorStream()));
 
-        if (reader.lines().findAny().isPresent()) {
+        if (reader1.lines().findAny().isPresent()) {
             commandShellService.deleteCommandShellFile(fileName);
-            reader.lines().forEach(log::error);
+            reader1.lines().forEach(log::error);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Something wrong with the file");
         }
 
-        processBuilder.command("sh", "dos2unix " + filePath.toAbsolutePath());
+        processBuilder.command("sh", "-c", "dos2unix " + filePath.toAbsolutePath());
 
+        Process process2;
         try {
             log.info("Start Command : {}", processBuilder.command());
-            process = processBuilder.start();
+            process2 = processBuilder.start();
         } catch (IOException exception) {
             commandShellService.deleteCommandShellFile(fileName);
             log.error(exception.getMessage());
@@ -169,12 +170,12 @@ public class ProjectServiceImpl implements ProjectService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage());
         }
 
-        reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+        BufferedReader reader2 = new BufferedReader(new InputStreamReader(process2.getErrorStream()));
 
-        if (reader.lines().findAny().isPresent()) {
+        if (reader2.lines().findAny().isPresent()) {
             commandShellService.deleteCommandShellFile(fileName);
 
-            reader.lines().forEach(log::error);
+            reader2.lines().forEach(log::error);
 
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Something wrong with the file");
         }
