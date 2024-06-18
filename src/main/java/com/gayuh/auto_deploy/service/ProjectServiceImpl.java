@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import reactor.core.publisher.Flux;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -28,6 +29,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final Path folderCommandPath;
     private final ProjectRepository projectRepository;
     private final CommandShellService commandShellService;
+    private final BuildHistoryService buildHistoryService;
 
     @Override
     public ProjectDetailResponse getProjectById(String projectId) {
@@ -120,6 +122,25 @@ public class ProjectServiceImpl implements ProjectService {
         if (isUpdateFile) allowExecuteFile(project.getFileName());
 
         projectRepository.save(project);
+    }
+
+    @Override
+    public Flux<String> buildProject(String projectId) throws InterruptedException, IOException {
+        var project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
+
+
+        processBuilder.command("/bin/bash", "-c", project.getPath());
+
+        log.info("Start build project {} with path {}", project.getName(), project.getPath());
+
+        Process process = processBuilder.start();
+
+        buildHistoryService.addBuildHistory(process, project);
+
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+        return Flux.fromStream(bufferedReader.lines());
     }
 
     private void allowExecuteFile(String fileName) throws IOException {

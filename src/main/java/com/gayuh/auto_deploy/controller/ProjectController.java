@@ -74,6 +74,12 @@ public class ProjectController {
         return ResponseEntity.ok(Map.of("message", "success delete data"));
     }
 
+    @PostMapping(value = "{projectId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> startProjectBuild(@PathVariable(name = "projectId") String projectId) throws InterruptedException, IOException {
+
+        return projectService.buildProject(projectId);
+    }
+
     @GetMapping(value = "test/{command}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> test(@PathVariable String command) throws IOException {
         boolean isWindows = System.getProperty("os.name").toLowerCase().contains("windows");
