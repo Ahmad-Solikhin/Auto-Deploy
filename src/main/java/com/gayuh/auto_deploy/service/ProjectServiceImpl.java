@@ -130,7 +130,7 @@ public class ProjectServiceImpl implements ProjectService {
 
         log.info("Start build project {} with path {}", project.getName(), project.getPath());
 
-        return processBuilder.command("sh", "-c", project.getPath());
+        return processBuilder.command("sh", "-c", project.getPath()).inheritIO();
     }
 
     private void allowExecuteFile(String fileName) throws IOException {

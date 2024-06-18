@@ -77,7 +77,7 @@ public class ProjectController {
         return ResponseEntity.ok(Map.of("message", "success delete data"));
     }
 
-    @PostMapping(value = "{projectId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/build/{projectId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> startProjectBuild(@PathVariable(name = "projectId") String projectId) throws InterruptedException, IOException {
 
         var builder = projectService.buildProject(projectId);
@@ -85,12 +85,12 @@ public class ProjectController {
         Process process = builder.start();
 
         BufferedReader successReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+        //BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
-        Stream<String> stringStream = Stream.concat(successReader.lines(), errorReader.lines());
+        //Stream<String> stringStream = Stream.concat(successReader.lines(), errorReader.lines());
         //buildHistoryService.addBuildHistory(process, projectId);
 
-        return Flux.fromStream(stringStream);
+        return Flux.fromStream(successReader.lines());
     }
 
     @GetMapping(value = "test/{command}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
