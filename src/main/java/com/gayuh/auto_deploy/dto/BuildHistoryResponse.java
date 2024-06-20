@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record BuildHistoryResponse(
         Long id,
-        Boolean success,
         String executionTime,
         Long executionTimeEpochUnix,
         LocalDateTime executeAt,

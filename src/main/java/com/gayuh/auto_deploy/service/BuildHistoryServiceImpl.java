@@ -2,6 +2,7 @@ package com.gayuh.auto_deploy.service;
 
 import com.gayuh.auto_deploy.entity.BuildHistory;
 import com.gayuh.auto_deploy.entity.BuildHistoryLog;
+import com.gayuh.auto_deploy.entity.Project;
 import com.gayuh.auto_deploy.repository.BuildHistoryLogRepository;
 import com.gayuh.auto_deploy.repository.BuildHistoryRepository;
 import com.gayuh.auto_deploy.repository.ProjectRepository;
@@ -17,8 +18,6 @@ import java.io.InputStreamReader;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -31,17 +30,11 @@ public class BuildHistoryServiceImpl implements BuildHistoryService {
     @Async
     @Override
     @Transactional
-    public void addBuildHistory(Process process, String projectId) throws IOException {
-        boolean successStatus = true;
+    public void addBuildHistory(Process process, Project project) {
 
-        BufferedReader successReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 
-        Stream<String> stringStream = Stream.concat(successReader.lines(), errorReader.lines());
-
-        Long executeAt = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
-
-        var project = projectRepository.findById(projectId).orElse(null);
+        long executeAt = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
 
         var buildHistory = BuildHistory.builder()
                 .executeAt(executeAt)
@@ -50,23 +43,19 @@ public class BuildHistoryServiceImpl implements BuildHistoryService {
 
         buildHistoryRepository.save(buildHistory);
 
-        var listBuildHistoryLog = new ArrayList<BuildHistoryLog>();
-        AtomicInteger lineNumber = new AtomicInteger(1);
-        stringStream.forEach(data ->
-                listBuildHistoryLog.add(
-                        BuildHistoryLog.builder()
-                                .buildHistory(buildHistory)
-                                .lineNumber(lineNumber.getAndIncrement())
-                                .line(data)
-                                .build()
-                )
-        );
+        var listBuildHistoryLog = new ArrayList<String>();
+
+        reader.lines().forEach(listBuildHistoryLog::add);
 
         buildHistory.setExecutionTime(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) - executeAt);
-        buildHistory.setSuccess(successStatus);
 
         buildHistoryRepository.save(buildHistory);
 
-        buildHistoryLogRepository.saveAll(listBuildHistoryLog);
+        buildHistoryLogRepository.save(
+                BuildHistoryLog.builder()
+                        .line(String.join("\n", listBuildHistoryLog))
+                        .buildHistory(buildHistory)
+                        .build()
+        );
     }
 }

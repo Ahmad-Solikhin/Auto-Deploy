@@ -1,9 +1,6 @@
 package com.gayuh.auto_deploy.service;
 
-import com.gayuh.auto_deploy.dto.BuildHistoryResponse;
-import com.gayuh.auto_deploy.dto.ProjectDetailResponse;
-import com.gayuh.auto_deploy.dto.ProjectRequest;
-import com.gayuh.auto_deploy.dto.ProjectResponse;
+import com.gayuh.auto_deploy.dto.*;
 import com.gayuh.auto_deploy.entity.Project;
 import com.gayuh.auto_deploy.repository.ProjectRepository;
 import jakarta.transaction.Transactional;
@@ -18,7 +15,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -28,37 +28,32 @@ public class ProjectServiceImpl implements ProjectService {
     private final Path folderCommandPath;
     private final ProjectRepository projectRepository;
     private final CommandShellService commandShellService;
-    private final BuildHistoryService buildHistoryService;
+
+    @Override
+    public Project getEntityProjectById(String projectId) {
+        return projectRepository.findById(projectId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please provide correct project id")
+        );
+    }
 
     @Override
     public ProjectDetailResponse getProjectById(String projectId) {
         if (Objects.isNull(projectId))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please provide correct project id");
 
-        var queries = projectRepository.findProjectBuildHistoryQueryById(projectId);
+        ProjectBuildHistoryQuery queries = projectRepository.findProjectBuildHistoryQueryById(projectId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found")
+        );
 
-        if (queries.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found");
-
-        var listBuildHistory = new ArrayList<BuildHistoryResponse>();
-
-        if (queries.get(0).buildHistoryId() != null) {
-            queries.forEach(query -> listBuildHistory.add(new BuildHistoryResponse(
-                    query.buildHistoryId(),
-                    query.success(),
-                    null,
-                    query.executionTime(),
-                    null,
-                    query.executeAt()
-            )));
-        }
-
+        var listBuildHistory = new BuildHistoryResponse(
+                queries.buildHistoryId(), null, queries.executionTime(), null, queries.executeAt()
+        );
 
         return new ProjectDetailResponse(
-                queries.get(0).projectId(),
-                queries.get(0).name(),
-                queries.get(0).language(),
-                queries.get(0).description(),
-                null,
+                queries.projectId(),
+                queries.name(),
+                queries.language(),
+                queries.description(),
                 null,
                 null,
                 listBuildHistory
@@ -124,9 +119,7 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public ProcessBuilder buildProject(String projectId) throws InterruptedException, IOException {
-        var project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
+    public ProcessBuilder buildProject(Project project) {
 
         log.info("Start build project {} with path {}", project.getName(), project.getPath());
 

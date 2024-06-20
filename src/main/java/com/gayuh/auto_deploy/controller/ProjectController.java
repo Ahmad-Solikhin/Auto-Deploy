@@ -15,7 +15,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Map;
-import java.util.stream.Stream;
 
 @Slf4j
 @RestController
@@ -78,14 +77,17 @@ public class ProjectController {
     }
 
     @GetMapping(value = "/build/{projectId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> startProjectBuild(@PathVariable(name = "projectId") String projectId) throws InterruptedException, IOException {
+    public Flux<String> startProjectBuild(@PathVariable(name = "projectId") String projectId) throws IOException {
 
-        var builder = projectService.buildProject(projectId);
+        var project = projectService.getEntityProjectById(projectId);
+
+        var builder = projectService.buildProject(project);
 
         Process process = builder.start();
 
+        buildHistoryService.addBuildHistory(process, project);
+
         BufferedReader stream = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        //buildHistoryService.addBuildHistory(process, projectId);
 
         return Flux.fromStream(stream.lines());
     }
