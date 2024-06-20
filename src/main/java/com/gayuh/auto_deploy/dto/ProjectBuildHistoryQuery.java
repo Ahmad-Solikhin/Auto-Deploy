@@ -6,7 +6,6 @@ public record ProjectBuildHistoryQuery(
         String language,
         String description,
         Long buildHistoryId,
-        Boolean success,
         Long executionTime,
         Long executeAt
 ) {

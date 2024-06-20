@@ -10,12 +10,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ProjectRepository extends JpaRepository<Project, String> {
-    @Query(value = """
-                select new com.gayuh.auto_deploy.dto.ProjectResponse(
-                id, name, language, description
-                ) from Project where id = :projectId
-            """)
-    Optional<ProjectResponse> findProjectResponseById(String projectId);
 
     @Query(value = """
                 select new com.gayuh.auto_deploy.dto.ProjectResponse(
@@ -31,12 +25,11 @@ public interface ProjectRepository extends JpaRepository<Project, String> {
                       po.language,
                       po.description,
                       bh.id,
-                      bh.success,
                       bh.executionTime,
                       bh.executeAt
             ) from Project po
             left join BuildHistory bh on (po.id = bh.project.id)
             where po.id = :projectId
             """)
-    List<ProjectBuildHistoryQuery> findProjectBuildHistoryQueryById(String projectId);
+    Optional<ProjectBuildHistoryQuery> findProjectBuildHistoryQueryById(String projectId);
 }

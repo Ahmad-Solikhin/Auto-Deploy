@@ -3,8 +3,6 @@ package com.gayuh.auto_deploy.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.List;
-
 @Getter
 @Setter
 @Entity
@@ -17,7 +15,6 @@ public class BuildHistory {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "build_hiistories_generator")
     @SequenceGenerator(name = "build_hiistories_generator", sequenceName = "build_histories_id_seq", allocationSize = 1)
     private Long id;
-    private Boolean success;
     @Column(name = "execution_time")
     private Long executionTime;
     @Column(name = "execute_at")
@@ -25,6 +22,6 @@ public class BuildHistory {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
     private Project project;
-    @OneToMany(mappedBy = "buildHistory")
-    private List<BuildHistoryLog> buildHistoryLogList;
+    @OneToOne(mappedBy = "buildHistory", fetch = FetchType.LAZY)
+    private BuildHistoryLog buildHistoryLog;
 }
