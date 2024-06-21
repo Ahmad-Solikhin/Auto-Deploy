@@ -14,8 +14,6 @@ import reactor.core.publisher.Flux;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Map;
 
 @Slf4j
@@ -23,10 +21,9 @@ import java.util.Map;
 @RequestMapping("api/v1/projects")
 @RequiredArgsConstructor
 public class ProjectController {
-    private final ProcessBuilder processBuilder;
+    //private final ProcessBuilder processBuilder;
     private final ProjectService projectService;
     private final BuildHistoryService buildHistoryService;
-
 
     @GetMapping(value = "{projectId}")
     public ResponseEntity<Object> getById(@PathVariable(name = "projectId") String projectId) {
@@ -89,8 +86,6 @@ public class ProjectController {
 
         BufferedReader stream = new BufferedReader(new InputStreamReader(process.getInputStream()));
 
-        long startTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
-
         Flux<String> response = Flux.using(
                 () -> stream,
                 reader -> Flux.fromStream(new BufferedReader(reader).lines()),
@@ -103,7 +98,7 @@ public class ProjectController {
                 }
         );
 
-        buildHistoryService.addBuildHistory(response, project, startTime);
+        buildHistoryService.addBuildHistoryLog(response, null);
 
         return response;
 
@@ -120,41 +115,5 @@ public class ProjectController {
         ).collectList().subscribe(dataList -> buildHistoryService.addBuildHistory(dataList, project, startTime, LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)));*/
 
         //return Flux.fromStream(stream.lines());
-    }
-
-    @GetMapping(value = "test/{command}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> test(@PathVariable String command) throws IOException {
-        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("windows");
-
-        if (isWindows) {
-            processBuilder.command("powershell.exe", "/c", command);
-        } else {
-            processBuilder.command("sh", "-c", "whoami");
-        }
-
-        log.info(processBuilder.command().toString());
-
-        Process process = processBuilder.start();
-
-        //Todo: Send the process to async function to insert it to logs and to calculate the execution time, and if there are error in ErrorStream change the build success to failed
-
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-
-        return Flux.fromStream(bufferedReader.lines());
-
-        /*return Flux.using(
-                // resource factory creates FileReader instance
-                () -> new InputStreamReader(process.getInputStream()),
-                // transformer function turns the FileReader into a Flux
-                reader -> Flux.fromStream(new BufferedReader(reader).lines()),
-                // resource cleanup function closes the FileReader when the Flux is complete
-                reader -> {
-                    try {
-                        reader.close();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-        );*/
     }
 }

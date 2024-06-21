@@ -1,7 +1,6 @@
 package com.gayuh.auto_deploy.service;
 
 import com.gayuh.auto_deploy.entity.BuildHistory;
-import com.gayuh.auto_deploy.entity.BuildHistoryLog;
 import com.gayuh.auto_deploy.entity.Project;
 import com.gayuh.auto_deploy.repository.BuildHistoryLogRepository;
 import com.gayuh.auto_deploy.repository.BuildHistoryRepository;
@@ -12,10 +11,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 
 @Slf4j
@@ -28,23 +23,19 @@ public class BuildHistoryServiceImpl implements BuildHistoryService {
     @Async
     @Override
     @Transactional
-    public void addBuildHistory(Flux<String> lines, Project project, long startTime) {
+    public void addBuildHistoryLog(Flux<String> lines, BuildHistory buildHistory) {
 
-        List<String> dataLines = lines.collectList().block();
+        List<String> block = lines.collectList().block();
+        block.forEach(log::info);
 
-        var buildHistory = BuildHistory.builder()
-                .executeAt(startTime)
+    }
+
+    @Override
+    @Transactional
+    public BuildHistory addBuildHistory(Project project, long startTime) {
+        return buildHistoryRepository.save(BuildHistory.builder()
                 .project(project)
-                .executionTime(Duration.between(Instant.ofEpochMilli(startTime), LocalDateTime.now().atOffset(ZoneOffset.UTC)).toMillis())
-                .build();
-
-        buildHistoryRepository.save(buildHistory);
-
-        buildHistoryLogRepository.save(
-                BuildHistoryLog.builder()
-                        .line(String.join("\n", dataLines))
-                        .buildHistory(buildHistory)
-                        .build()
-        );
+                .executeAt(startTime)
+                .build());
     }
 }
