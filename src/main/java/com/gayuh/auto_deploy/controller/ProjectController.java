@@ -14,6 +14,8 @@ import reactor.core.publisher.Flux;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
 
 @Slf4j
@@ -77,7 +79,7 @@ public class ProjectController {
     }
 
     @GetMapping(value = "/build/{projectId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> startProjectBuild(@PathVariable(name = "projectId") String projectId) throws IOException, InterruptedException {
+    public Flux<String> startProjectBuild(@PathVariable(name = "projectId") String projectId) throws IOException {
 
         var project = projectService.getEntityProjectById(projectId);
 
@@ -87,11 +89,37 @@ public class ProjectController {
 
         BufferedReader stream = new BufferedReader(new InputStreamReader(process.getInputStream()));
 
-        stream.mark(0);
+        long startTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
 
-        buildHistoryService.addBuildHistory(stream, project);
+        Flux<String> response = Flux.using(
+                () -> stream,
+                reader -> Flux.fromStream(new BufferedReader(reader).lines()),
+                reader -> {
+                    try {
+                        reader.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+        );
 
-        return Flux.fromStream(stream.lines());
+        buildHistoryService.addBuildHistory(response, project, startTime);
+
+        return response;
+
+        /*return Flux.using(
+                () -> stream,
+                reader -> Flux.fromStream(new BufferedReader(reader).lines()),
+                reader -> {
+                    try {
+                        reader.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+        ).collectList().subscribe(dataList -> buildHistoryService.addBuildHistory(dataList, project, startTime, LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)));*/
+
+        //return Flux.fromStream(stream.lines());
     }
 
     @GetMapping(value = "test/{command}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

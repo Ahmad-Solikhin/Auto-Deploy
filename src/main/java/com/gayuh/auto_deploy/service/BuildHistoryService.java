@@ -1,10 +1,8 @@
 package com.gayuh.auto_deploy.service;
 
 import com.gayuh.auto_deploy.entity.Project;
-
-import java.io.BufferedReader;
-import java.io.IOException;
+import reactor.core.publisher.Flux;
 
 public interface BuildHistoryService {
-    void addBuildHistory(BufferedReader stream, Project project) throws InterruptedException, IOException;
+    void addBuildHistory(Flux<String> lines, Project project, long startTime);
 }

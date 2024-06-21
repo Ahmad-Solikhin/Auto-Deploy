@@ -10,13 +10,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -28,40 +28,21 @@ public class BuildHistoryServiceImpl implements BuildHistoryService {
     @Async
     @Override
     @Transactional
-    public void addBuildHistory(BufferedReader stream, Project project) throws InterruptedException, IOException {
+    public void addBuildHistory(Flux<String> lines, Project project, long startTime) {
 
-        log.info("start add build log in background");
-
-        long executeAt = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
+        List<String> dataLines = lines.collectList().block();
 
         var buildHistory = BuildHistory.builder()
-                .executeAt(executeAt)
+                .executeAt(startTime)
                 .project(project)
+                .executionTime(Duration.between(Instant.ofEpochMilli(startTime), LocalDateTime.now().atOffset(ZoneOffset.UTC)).toMillis())
                 .build();
-
-        buildHistoryRepository.save(buildHistory);
-
-        long sleepDuration = Duration.ofMinutes(5).toMillis();
-
-        log.info("Start sleep for {} minutes", Duration.ofMillis(sleepDuration).toMinutes());
-
-        Thread.sleep(sleepDuration);
-
-        log.info("Done sleep, start add to log");
-
-        stream.reset();
-
-        var listBuildHistoryLog = new ArrayList<String>();
-
-        stream.lines().forEach(listBuildHistoryLog::add);
-
-        buildHistory.setExecutionTime(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) - executeAt - sleepDuration);
 
         buildHistoryRepository.save(buildHistory);
 
         buildHistoryLogRepository.save(
                 BuildHistoryLog.builder()
-                        .line(String.join("\n", listBuildHistoryLog))
+                        .line(String.join("\n", dataLines))
                         .buildHistory(buildHistory)
                         .build()
         );
