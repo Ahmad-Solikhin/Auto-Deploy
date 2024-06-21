@@ -13,6 +13,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -21,9 +23,11 @@ import java.util.Objects;
 public class CommandShellServiceImpl implements CommandShellService {
     private final Path folderCommandPath;
 
+    private final List<String> contents = List.of("octet-stream", "x-sh");
+
     @Override
     public void saveProjectCommand(Project project, MultipartFile file) {
-        checkContentType("octet-stream", file);
+        checkContentType(file);
 
         String fileName = project.getId() + "-" + file.getOriginalFilename();
 
@@ -36,7 +40,7 @@ public class CommandShellServiceImpl implements CommandShellService {
     public Boolean updateCommandShellFile(Project project, MultipartFile file) {
         boolean isDataChange = false;
         if (file != null) {
-            checkContentType("octet-stream", file);
+            checkContentType(file);
             isDataChange = true;
             deleteCommandShellFile(project.getFileName());
             saveProjectCommand(project, file);
@@ -57,7 +61,8 @@ public class CommandShellServiceImpl implements CommandShellService {
             Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
             path = filePath.toAbsolutePath().toString();
         } catch (IOException exception) {
-            exception.printStackTrace();
+            log.error(exception.getMessage());
+            Arrays.stream(exception.getStackTrace()).forEach(err -> log.error(err.toString()));
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error save file " + file.getOriginalFilename());
         }
 
@@ -69,15 +74,16 @@ public class CommandShellServiceImpl implements CommandShellService {
             Path filePath = folderCommandPath.resolve(fileName);
             Files.deleteIfExists(filePath);
         } catch (IOException exception) {
-            exception.printStackTrace();
+            log.error(exception.getMessage());
+            Arrays.stream(exception.getStackTrace()).forEach(err -> log.error(err.toString()));
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error delete file " + fileName);
         }
     }
 
-    private void checkContentType(String content, MultipartFile file) {
+    private void checkContentType(MultipartFile file) {
         String type = Objects.requireNonNull(file.getContentType()).split("/")[1];
-        if (!type.equalsIgnoreCase(content)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only accept " + content);
+        if (!contents.contains(type.toLowerCase())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only accept " + String.join("or", contents));
         }
     }
 
