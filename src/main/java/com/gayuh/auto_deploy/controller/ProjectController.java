@@ -23,7 +23,9 @@ import java.util.Map;
 public class ProjectController {
     //private final ProcessBuilder processBuilder;
     private final ProjectService projectService;
-    private final BuildHistoryService buildHistoryService;
+    //private final BuildHistoryService buildHistoryService;
+
+    //For now only print the output, not save the history into the database because for now i don't know how to do that simultaneously
 
     @GetMapping(value = "{projectId}")
     public ResponseEntity<Object> getById(@PathVariable(name = "projectId") String projectId) {
@@ -86,7 +88,7 @@ public class ProjectController {
 
         BufferedReader stream = new BufferedReader(new InputStreamReader(process.getInputStream()));
 
-        Flux<String> response = Flux.using(
+        return Flux.using(
                 () -> stream,
                 reader -> Flux.fromStream(new BufferedReader(reader).lines()),
                 reader -> {
@@ -98,9 +100,7 @@ public class ProjectController {
                 }
         );
 
-        buildHistoryService.addBuildHistoryLog(response, null);
-
-        return response;
+        //buildHistoryService.addBuildHistoryLog(response, null);
 
         /*return Flux.using(
                 () -> stream,
