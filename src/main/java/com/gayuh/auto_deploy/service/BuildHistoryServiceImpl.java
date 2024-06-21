@@ -12,7 +12,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.IOException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -27,9 +28,7 @@ public class BuildHistoryServiceImpl implements BuildHistoryService {
     @Async
     @Override
     @Transactional
-    public void addBuildHistory(Process process, Project project) {
-
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+    public void addBuildHistory(BufferedReader stream, Project project) throws InterruptedException, IOException {
 
         long executeAt = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
 
@@ -40,11 +39,17 @@ public class BuildHistoryServiceImpl implements BuildHistoryService {
 
         buildHistoryRepository.save(buildHistory);
 
+        long sleepDuration = Duration.ofMinutes(5).toMillis();
+
+        Thread.sleep(sleepDuration);
+
+        stream.reset();
+
         var listBuildHistoryLog = new ArrayList<String>();
 
-        reader.lines().forEach(listBuildHistoryLog::add);
+        stream.lines().forEach(listBuildHistoryLog::add);
 
-        buildHistory.setExecutionTime(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) - executeAt);
+        buildHistory.setExecutionTime(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) - executeAt - sleepDuration);
 
         buildHistoryRepository.save(buildHistory);
 

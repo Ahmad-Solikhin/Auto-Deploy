@@ -77,7 +77,7 @@ public class ProjectController {
     }
 
     @GetMapping(value = "/build/{projectId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> startProjectBuild(@PathVariable(name = "projectId") String projectId) throws IOException {
+    public Flux<String> startProjectBuild(@PathVariable(name = "projectId") String projectId) throws IOException, InterruptedException {
 
         var project = projectService.getEntityProjectById(projectId);
 
@@ -85,9 +85,11 @@ public class ProjectController {
 
         Process process = builder.start();
 
-        buildHistoryService.addBuildHistory(process, project);
-
         BufferedReader stream = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+        stream.mark(0);
+
+        buildHistoryService.addBuildHistory(stream, project);
 
         return Flux.fromStream(stream.lines());
     }
