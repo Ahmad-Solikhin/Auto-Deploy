@@ -103,9 +103,16 @@ public class ProjectController {
     @GetMapping(value = "/build/{projectId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> startProjectBuild(
             @PathVariable(name = "projectId") String projectId,
-            @RequestHeader(name = "SECRET_KEY") String secret
+            @RequestHeader(name = "SECRET_KEY", required = false) String secret,
+            @RequestParam(name = "secret", required = false) String secretParam
     ) throws IOException {
-        checkHeaderSecret(secret);
+
+        if (secretParam == null && secret == null) checkHeaderSecret(null);
+
+        if (secretParam != null) checkHeaderSecret(secretParam);
+
+        if (secret != null) checkHeaderSecret(secret);
+
         var project = projectService.getEntityProjectById(projectId);
 
         var builder = projectService.buildProject(project);
