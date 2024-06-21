@@ -107,7 +107,7 @@ public class ProjectController {
             @RequestParam(name = "secret", required = false) String secretParam
     ) throws IOException {
 
-        if (secretParam == null && secret == null) checkHeaderSecret(null);
+        if (secretParam == null && secret == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Must provide ecret valid key");
 
         if (secretParam != null) checkHeaderSecret(secretParam);
 
