@@ -30,6 +30,8 @@ public class BuildHistoryServiceImpl implements BuildHistoryService {
     @Transactional
     public void addBuildHistory(BufferedReader stream, Project project) throws InterruptedException, IOException {
 
+        log.info("start add build log in background");
+
         long executeAt = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
 
         var buildHistory = BuildHistory.builder()
@@ -41,7 +43,11 @@ public class BuildHistoryServiceImpl implements BuildHistoryService {
 
         long sleepDuration = Duration.ofMinutes(5).toMillis();
 
+        log.info("Start sleep for {} minutes", Duration.ofMillis(sleepDuration).toMinutes());
+
         Thread.sleep(sleepDuration);
+
+        log.info("Done sleep, start add to log");
 
         stream.reset();
 
